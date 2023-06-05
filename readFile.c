@@ -23,7 +23,7 @@ extern "C" {
 #endif
 
 char rcsid_readFile[] =
-		"$Id: readFile.c,v 2.38 2023-06-05 08:21:09-04 ron Exp $";
+		"$Id: readFile.c,v 2.39 2023-06-05 11:56:17-04 ron Exp $";
 
 #ifdef _MSC_VER
 	#define fseek _fseeki64
@@ -49,9 +49,9 @@ Strchr(const char *s, int c)
     // loop unrolled for speed
 	for (; *s != c1; ++s) {
 		if (!*s) return NULL;
-        if (*++s == c) break;
+        if (*++s == c1) break;
         if (!*s) return NULL;
-        if (*++s == c) break;
+        if (*++s == c1) break;
         if (!*s) return NULL;
     }
 
