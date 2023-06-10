@@ -1,5 +1,5 @@
 <!-- title: readFile.c Read Me -->
-<!-- $Id: README.md,v 1.2 2023-06-05 08:05:54-04 ron Exp $ -->
+<!-- $Id: README.md,v 1.3 2023-06-10 13:50:45-04 ron Exp $ -->
 
 # readFile.c
 
@@ -9,7 +9,8 @@ freeLines.
 ## `readFile` function
 
 ```c
-char *readFile(const char *fileName, int textMode, int terminate, size_t maxSize, size_t *length)
+char *readFile(const char *fileName, int textMode,
+    int terminate, size_t maxSize, size_t *length)
 ```
 
 `readFile` reads the entire contents of a file into a newly-malloc'ed buffer
@@ -21,7 +22,8 @@ content's byte count may be obtained through `length`.
 ## `readLines` function
 
 ```c
-char **readLines(const char *fileName, size_t maxSize, size_t *lineCount)
+char **readLines(const char *fileName, size_t maxSize, 
+    size_t *lineCount)
 ```
 
 `readLines` reads the entire contents of a text file into a newly-malloc'ed
