@@ -23,7 +23,7 @@ extern "C" {
 #endif
 
 char rcsid_readFile[] =
-		"$Id: readFile.c,v 2.39 2023-06-05 11:56:17-04 ron Exp $";
+		"$Id: readFile.c,v 2.47 2023-06-13 09:22:24-04 ron Exp $";
 
 #ifdef _MSC_VER
 	#define fseek _fseeki64
@@ -69,8 +69,8 @@ ARGUMENTS
   Inputs:
 	fileName    the name of the file to read
 	textMode    Read in text mode if non-zero, or in binary mode if zero.
-                If textMode is non-zero then carriage returns are removed
-                and terminate is forced to TRUE.
+                If textMode is non-zero then "\r\n" is replaced by "\n" and
+                terminate is forced to TRUE.
 	terminate   If terminate is non-zero then a terminating '\0' is added after
 				the end of the file's contents in the buffer.
 	maxSize		If maxSize is non-zero its value sets a limit on the 
@@ -124,7 +124,7 @@ readFile(const char *fileName, int textMode, int terminate, size_t maxSize,
                                 if (s) {
                                     char *d = s, *end = buf + n;
                                     for (; s < end; ++s)
-                                        if (*s != '\r')
+                                        if (*s != '\r' || s[1] != '\n')
                                             *d++ = *s;
                                     n = d - buf;
                                     if (terminate)
@@ -199,9 +199,9 @@ readLines(const char *fileName, size_t maxSize, size_t *lineCount)
 	errno_t e = errno;	    // remember errno to restore it if no error
 
     errno = 0;
-    buf = readFile(fileName, 1, 1, maxSize, &length);
+    buf = readFile(fileName, TRUE, TRUE, maxSize, &length);
     if (buf) {
-        lnCnt += length && buf[length-1] != '\n'; // for file without final '\n'
+        lnCnt += length && buf[length-1] != '\n'; // if no '\n' at EOF
         for (p = buf; (p = Strchr(p, '\n')); ++p)
             ++lnCnt;
         linesSize = (lnCnt + 1) * sizeof(*lines);
