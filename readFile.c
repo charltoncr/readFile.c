@@ -23,7 +23,7 @@ extern "C" {
 #endif
 
 char rcsid_readFile[] =
-		"$Id: readFile.c,v 2.47 2023-06-13 09:22:24-04 ron Exp $";
+		"$Id: readFile.c,v 2.50 2023-06-14 16:41:55-04 ron Exp $";
 
 #ifdef _MSC_VER
 	#define fseek _fseeki64
@@ -36,27 +36,6 @@ char rcsid_readFile[] =
     #undef TRUE
 #endif
 #define TRUE 1
-
-
-static inline char *Strchr(const char *s, int c);
-
-/* faster than macOS's clang v14.0.3 strchr on a 3.2 GHz M1 Mac mini */
-static inline char *
-Strchr(const char *s, int c)
-{
-	const char c1 = c;
-
-    // loop unrolled for speed
-	for (; *s != c1; ++s) {
-		if (!*s) return NULL;
-        if (*++s == c1) break;
-        if (!*s) return NULL;
-        if (*++s == c1) break;
-        if (!*s) return NULL;
-    }
-
-	return (char *)s;
-}
 
 
 /*
@@ -118,9 +97,9 @@ readFile(const char *fileName, int textMode, int terminate, size_t maxSize,
 						n = fread(buf, 1, fsize, in);
 						if (!ferror(in)) {
                             if (terminate)
-								buf[n] = '\0';  // for Strchr below
+								buf[n] = '\0';  // for strchr below
                             if (textMode) {
-                                char *s = Strchr(buf, '\r');
+                                char *s = strchr(buf, '\r');
                                 if (s) {
                                     char *d = s, *end = buf + n;
                                     for (; s < end; ++s)
@@ -202,7 +181,7 @@ readLines(const char *fileName, size_t maxSize, size_t *lineCount)
     buf = readFile(fileName, TRUE, TRUE, maxSize, &length);
     if (buf) {
         lnCnt += length && buf[length-1] != '\n'; // if no '\n' at EOF
-        for (p = buf; (p = Strchr(p, '\n')); ++p)
+        for (p = buf; (p = strchr(p, '\n')); ++p)
             ++lnCnt;
         linesSize = (lnCnt + 1) * sizeof(*lines);
         if (!maxSize || (linesSize+length+1) <= maxSize) {
@@ -211,7 +190,7 @@ readLines(const char *fileName, size_t maxSize, size_t *lineCount)
                 char **ln = lines;
                 if (length) {
                     *ln++ = buf; // first line
-                    for (p = buf; (p = Strchr(p, '\n'));) {
+                    for (p = buf; (p = strchr(p, '\n'));) {
                         *p++ = '\0';
                         if (*p)
                             *ln++ = p;
