@@ -23,7 +23,7 @@ extern "C" {
 #endif
 
 char rcsid_readFile[] =
-		"$Id: readFile.c,v 2.50 2023-06-14 16:41:55-04 ron Exp $";
+		"$Id: readFile.c,v 2.52 2023-06-15 06:40:58-04 ron Exp $";
 
 #ifdef _MSC_VER
 	#define fseek _fseeki64
@@ -253,9 +253,9 @@ extern "C" {
 /*
 Read a file specified on the command line and write its contents to stdout.
 Also write the number of lines in the file to stderr.
-Processing an 8 GB pi_8e9.txt file takes 11.7 seconds (writing to /dev/null)
+Processing an 8 GB pi_8e9.txt file takes 3.1 seconds (writing to /dev/null)
 on a 2020 3.2 GHz M1 Mac mini w/16 GB RAM, and reading from the internal SSD.
-The runtime is unchanged if pi_8e9.txt is preceeded by "\r\n".  pi_8e9.txt is
+The runtime is 7.2 seconds if pi_8e9.txt is preceeded by "\r\n".  pi_8e9.txt is
 pure digits plus one period.
 */
 int
