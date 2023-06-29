@@ -23,7 +23,7 @@ extern "C" {
 #endif
 
 char rcsid_readFile[] =
-		"$Id: readFile.c,v 2.52 2023-06-15 06:40:58-04 ron Exp $";
+		"$Id: readFile.c,v 2.55 2023-06-29 07:08:34-04 ron Exp $";
 
 #ifdef _MSC_VER
 	#define fseek _fseeki64
@@ -37,6 +37,10 @@ char rcsid_readFile[] =
 #endif
 #define TRUE 1
 
+#ifdef FALSE
+    #undef FALSE
+#endif
+#define FALSE 0
 
 /*
 readFile reads the entire contents of the file named "fileName" into a
@@ -73,16 +77,16 @@ readFile(const char *fileName, int textMode, int terminate, size_t maxSize,
 	size_t fsize;		// file size
 	size_t n = 0;		// length in chars of the data as read from the file
 	char *buf = NULL;	// points to retrieved data
-	errno_t e = errno;	// remember errno to restore it if no error
     size_t t;           // space for terminating '\0'
+    int err = FALSE;
 
 	if (!fileName) {
 		errno = EINVAL;
+        err = TRUE;
 	} else {
         if (textMode)
             terminate = TRUE;
 		t = !!terminate;	// allowance for terminator if required
-		errno = 0;
 		#ifdef _MSC_VER
 		  if (!fopen_s(&in, fileName, "rb") && in) {
 		#else
@@ -117,21 +121,24 @@ readFile(const char *fileName, int textMode, int terminate, size_t maxSize,
 								else
 									errno = 0;	// let original buf be returned
 							}
-						}
+						} else {
+                            err = TRUE; // note fread error
+                        }
 					}
-				} else
+				} else {
 					errno = EFBIG;
+                    err = TRUE;
+                }
 			}
 			fclose(in);
 		}
 	}
 
-	if (errno) {
+	if (!buf || err) {
 		n = 0;
 		free(buf);
 		buf = NULL;
-	} else
-		errno = e;
+    }
 
 	if (length)
 		*length = n;
@@ -175,12 +182,11 @@ readLines(const char *fileName, size_t maxSize, size_t *lineCount)
     size_t lnCnt = 0;       // local line count
     size_t linesSize;       // space required for line pointers
     char **lines = NULL;    // argv-like array of lines found in fileName
-	errno_t e = errno;	    // remember errno to restore it if no error
+    int err = FALSE;        // error indicator
 
-    errno = 0;
     buf = readFile(fileName, TRUE, TRUE, maxSize, &length);
     if (buf) {
-        lnCnt += length && buf[length-1] != '\n'; // if no '\n' at EOF
+        lnCnt += length && buf[length-1] != '\n'; // line with no '\n' at EOF
         for (p = buf; (p = strchr(p, '\n')); ++p)
             ++lnCnt;
         linesSize = (lnCnt + 1) * sizeof(*lines);
@@ -197,21 +203,21 @@ readLines(const char *fileName, size_t maxSize, size_t *lineCount)
                     }
                 } else {
                     free(buf);
-                    buf = NULL;
+                    buf = NULL; // lineCount will be correctly 0
                 }
                 *ln = NULL;
             }
         } else {
             errno = EFBIG;
+            err = TRUE;
         }
 	}
 
-	if (errno) {
+	if (!buf || !lines || err) {
         lnCnt = 0;
 		free(buf);
 		buf = NULL;
-	} else
-		errno = e;
+	}
 
 	if (lineCount)
 		*lineCount = lnCnt;
@@ -252,7 +258,7 @@ extern "C" {
 
 /*
 Read a file specified on the command line and write its contents to stdout.
-Also write the number of lines in the file to stderr.
+Also write to stderr the number of lines in the file.
 Processing an 8 GB pi_8e9.txt file takes 3.1 seconds (writing to /dev/null)
 on a 2020 3.2 GHz M1 Mac mini w/16 GB RAM, and reading from the internal SSD.
 The runtime is 7.2 seconds if pi_8e9.txt is preceeded by "\r\n".  pi_8e9.txt is
