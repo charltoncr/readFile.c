@@ -23,7 +23,7 @@ extern "C" {
 #endif
 
 char rcsid_readFile[] =
-		"$Id: readFile.c,v 2.55 2023-06-29 07:08:34-04 ron Exp $";
+		"$Id: readFile.c,v 2.69 2024-01-28 12:44:03-05 ron Exp $";
 
 #ifdef _MSC_VER
 	#define fseek _fseeki64
@@ -45,8 +45,7 @@ char rcsid_readFile[] =
 /*
 readFile reads the entire contents of the file named "fileName" into a
 newly-malloc'ed buffer and returns a pointer to the buffer.  Include
-readFile.h before calling readFile.  The maximum size of the file is
-SIZE_MAX as defined in limits.h.
+readFile.h before calling readFile.
 ARGUMENTS
 ---------
   Inputs:
@@ -97,33 +96,36 @@ readFile(const char *fileName, int textMode, int terminate, size_t maxSize,
 				if (!maxSize || (fsize + t) <= maxSize) {
 					buf = malloc(fsize + t);
 					if (buf) {
+                        errno = 0;  // per man page for rewind
     					rewind(in);
-						n = fread(buf, 1, fsize, in);
-						if (!ferror(in)) {
-                            if (terminate)
-								buf[n] = '\0';  // for strchr below
-                            if (textMode) {
-                                char *s = strchr(buf, '\r');
-                                if (s) {
-                                    char *d = s, *end = buf + n;
-                                    for (; s < end; ++s)
-                                        if (*s != '\r' || s[1] != '\n')
-                                            *d++ = *s;
-                                    n = d - buf;
-                                    if (terminate)
-                                        buf[n] = '\0';
+                        if (!errno) {
+                            n = fread(buf, 1, fsize, in);
+                            if (!ferror(in)) {
+                                if (terminate)
+                                    buf[n] = '\0';  // for strchr below
+                                if (textMode) {
+                                    char *s = strchr(buf, '\r');
+                                    if (s) {
+                                        char *d = s, *end = buf + n;
+                                        for (; s < end; ++s)
+                                            if (*s != '\r' || s[1] != '\n')
+                                                *d++ = *s;
+                                        n = d - buf;
+                                        if (terminate)
+                                            buf[n] = '\0';
+                                    }
                                 }
-                            }
-							if (n < fsize) {
-								char *b = realloc(buf, n + t);
-								if (b)
-									buf = b;
-								else
-									errno = 0;	// let original buf be returned
-							}
-						} else {
-                            err = TRUE; // note fread error
-                        }
+                                if (n < fsize) {
+                                    char *b = realloc(buf, n + t);
+                                    if (b)
+                                        buf = b;
+                                    else
+                                        errno = 0; // let original buf be returned
+                                }
+                            } else
+                                err = TRUE; // note fread error
+                        } else
+                            err = TRUE;
 					}
 				} else {
 					errno = EFBIG;
@@ -153,8 +155,7 @@ newly-malloc'ed buffer and returns an argv-like array of pointers to the
 lines found in the buffer.  Carriage returns and linefeeds are excluded
 from the lines.  Each line is terminated with '\0'.  Include readFile.h
 before calling readLines or freeLines.  The caller should call freeLines
-when the lines are no longer needed, even if *lineCount is 0.  The maximum
-size of the file is SIZE_MAX as defined in limits.h.
+when the lines are no longer needed, even if *lineCount is 0.
 ARGUMENTS
 ---------
   Inputs:
@@ -176,44 +177,40 @@ The returned line pointers are followed by a NULL pointer, similar to argv.
 char **
 readLines(const char *fileName, size_t maxSize, size_t *lineCount)
 {
-    char *buf;              // pointer to text returned by readFile
-    size_t length;          // length  of text returned by readFile
-    char *p;                // scratch pointer
-    size_t lnCnt = 0;       // local line count
-    size_t linesSize;       // space required for line pointers
-    char **lines = NULL;    // argv-like array of lines found in fileName
-    int err = FALSE;        // error indicator
+    char *buf;                  // pointer to text returned by readFile
+    size_t length;              // length  of text returned by readFile
+    char *p;                    // scratch pointer
+    size_t lnCnt;               // local line count
+    size_t linesSize;           // space required for line pointers
+    char **ln, **lines = NULL;  // argv-like array of lines found in fileName
 
     buf = readFile(fileName, TRUE, TRUE, maxSize, &length);
     if (buf) {
-        lnCnt += length && buf[length-1] != '\n'; // line with no '\n' at EOF
+        lnCnt = length && buf[length-1] != '\n'; // line with no '\n' at EOF
         for (p = buf; (p = strchr(p, '\n')); ++p)
             ++lnCnt;
         linesSize = (lnCnt + 1) * sizeof(*lines);
         if (!maxSize || (linesSize+length+1) <= maxSize) {
             lines = malloc(linesSize);
-            if (lines) {
-                char **ln = lines;
+            if ((ln = lines)) {
                 if (length) {
-                    *ln++ = buf; // first line
-                    for (p = buf; (p = strchr(p, '\n'));) {
+                    for (*ln++ = p = buf; (p = strchr(p, '\n'));) {
                         *p++ = '\0';
                         if (*p)
                             *ln++ = p;
                     }
                 } else {
                     free(buf);
-                    buf = NULL; // lineCount will be correctly 0
+                    buf = NULL; // *lineCount will correctly be 0
                 }
                 *ln = NULL;
             }
         } else {
-            errno = EFBIG;
-            err = TRUE;
+            errno = EFBIG;  // lines will be NULL so buf will be freed below
         }
 	}
 
-	if (!buf || !lines || err) {
+	if (!buf || !lines) {
         lnCnt = 0;
 		free(buf);
 		buf = NULL;
@@ -249,6 +246,8 @@ freeLines(char **lines)
 
 #ifdef READFILE_TEST
 
+
+
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -259,10 +258,10 @@ extern "C" {
 /*
 Read a file specified on the command line and write its contents to stdout.
 Also write to stderr the number of lines in the file.
-Processing an 8 GB pi_8e9.txt file takes 3.1 seconds (writing to /dev/null)
-on a 2020 3.2 GHz M1 Mac mini w/16 GB RAM, and reading from the internal SSD.
-The runtime is 7.2 seconds if pi_8e9.txt is preceeded by "\r\n".  pi_8e9.txt is
-pure digits plus one period.
+Processing an 8 GB pi_8e9.txt file takes 1.75 seconds (writing to /dev/null)
+on a 2023 3.504 GHz M2 Max Mac Studio w/32 GB RAM, and reading from the
+internal SSD.  The runtime is 4.52 seconds if pi_8e9.txt is preceeded by "\r\n".
+pi_8e9.txt is pure digits plus one period.
 */
 int
 main(int argc, char *argv[])
@@ -286,7 +285,7 @@ main(int argc, char *argv[])
 
     p = lines;
     while (*p)
-        printf("%s\n", *p++);
+        puts(*p++);
     
     fprintf(stderr, "lineCount: %ld\n", (long)lineCount);
 
@@ -294,7 +293,6 @@ main(int argc, char *argv[])
 
     return 0;
 }
-
 
 #ifdef __cplusplus
 }
