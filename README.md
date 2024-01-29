@@ -1,10 +1,10 @@
 <!-- title: readFile.c Read Me -->
-<!-- $Id: README.md,v 1.3 2023-06-10 13:50:45-04 ron Exp $ -->
+<!-- $Id: README.md,v 1.4 2024-01-29 13:08:10-05 ron Exp $ -->
 
 # readFile.c
 
-readFile.c contains three C language functions: readFile, readLines and
-freeLines.
+readFile.c contains three public domain C language functions: 
+readFile, readLines and freeLines.
 
 ## `readFile` function
 
