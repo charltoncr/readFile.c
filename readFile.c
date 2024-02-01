@@ -23,7 +23,7 @@ extern "C" {
 #endif
 
 char rcsid_readFile[] =
-		"$Id: readFile.c,v 2.69 2024-01-28 12:44:03-05 ron Exp $";
+		"$Id: readFile.c,v 2.71 2024-02-01 07:56:30-05 ron Exp $";
 
 #ifdef _MSC_VER
 	#define fseek _fseeki64
@@ -191,8 +191,7 @@ readLines(const char *fileName, size_t maxSize, size_t *lineCount)
             ++lnCnt;
         linesSize = (lnCnt + 1) * sizeof(*lines);
         if (!maxSize || (linesSize+length+1) <= maxSize) {
-            lines = malloc(linesSize);
-            if ((ln = lines)) {
+            if ( (ln = lines = malloc(linesSize)) ) {
                 if (length) {
                     for (*ln++ = p = buf; (p = strchr(p, '\n'));) {
                         *p++ = '\0';
