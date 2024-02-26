@@ -23,7 +23,7 @@ extern "C" {
 #endif
 
 char rcsid_readFile[] =
-		"$Id: readFile.c,v 2.76 2024-02-26 16:45:11-05 ron Exp $";
+		"$Id: readFile.c,v 2.77 2024-02-26 16:53:14-05 ron Exp $";
 
 #ifdef _MSC_VER
 	#define fseek _fseeki64
@@ -67,8 +67,6 @@ RETURN VALUE
 readFile returns a pointer to a newly malloc'ed data buffer or, if an error
 occurs, it sets errno and returns NULL.  The caller should free the returned
 buffer when it is no longer needed, even if *length is 0.
-NOTE: An address is hidden before the first entry in lines.  Don't mess with
-it or compensate in any way for it.
 */
 char *
 readFile(const char *fileName, int textMode, int terminate, size_t maxSize,
@@ -175,6 +173,8 @@ RETURN VALUE
 readLines returns a pointer to an argv-like array of pointers to the lines or,
 if an error occurs, it sets errno and returns NULL.
 The returned line pointers are followed by a NULL pointer, similar to argv.
+NOTE: An address is hidden before the first entry in lines.  Don't mess with
+it or compensate in any way for it.
 */
 char **
 readLines(const char *fileName, size_t maxSize, size_t *lineCount)
