@@ -23,7 +23,7 @@ extern "C" {
 #endif
 
 char rcsid_readFile[] =
-		"$Id: readFile.c,v 2.72 2024-02-01 08:09:18-05 ron Exp $";
+		"$Id: readFile.c,v 2.76 2024-02-26 16:45:11-05 ron Exp $";
 
 #ifdef _MSC_VER
 	#define fseek _fseeki64
@@ -66,7 +66,9 @@ RETURN VALUE
 ------------
 readFile returns a pointer to a newly malloc'ed data buffer or, if an error
 occurs, it sets errno and returns NULL.  The caller should free the returned
-buffer when it is no longer needed, even if *length is 0. 
+buffer when it is no longer needed, even if *length is 0.
+NOTE: An address is hidden before the first entry in lines.  Don't mess with
+it or compensate in any way for it.
 */
 char *
 readFile(const char *fileName, int textMode, int terminate, size_t maxSize,
@@ -150,7 +152,7 @@ readFile(const char *fileName, int textMode, int terminate, size_t maxSize,
 
 
 /*
-readLines reads the entire contents of the file named fileName into a
+readLines reads the entire contents of the text file named fileName into a
 newly-malloc'ed buffer and returns an argv-like array of pointers to the
 lines found in the buffer.  Carriage returns and linefeeds are excluded
 from the lines.  Each line is terminated with '\0'.  Include readFile.h
@@ -183,15 +185,19 @@ readLines(const char *fileName, size_t maxSize, size_t *lineCount)
     size_t lnCnt;               // local line count
     size_t linesSize;           // space required for line pointers
     char **ln, **lines = NULL;  // argv-like array of lines found in fileName
-
+    
+    // Store the address of readFile's buf variable as a hidden line at lines'
+    // beginning.
     buf = readFile(fileName, TRUE, TRUE, maxSize, &length);
     if (buf) {
         lnCnt = length && buf[length-1] != '\n'; // line with no '\n' at EOF
         for (p = buf; (p = strchr(p, '\n')); ++p)
             ++lnCnt;
-        linesSize = (lnCnt + 1) * sizeof(*lines);
+        linesSize = (lnCnt + 1+1) * sizeof(*lines); // 1+1 NULL, buf pointer
         if (!maxSize || (linesSize+length+1) <= maxSize) {
-            if ( (ln = lines = malloc(linesSize)) ) {
+            if ( (lines = malloc(linesSize)) ) {
+                *lines++ = buf;    // save readFile buffer location
+                ln = lines;
                 if (length)
                     for (*ln++ = p = buf; (p = strchr(p, '\n'));) {
                         *p++ = '\0';
@@ -222,12 +228,13 @@ freeLines frees memory allocated by readLines.
 ARGUMENTS
 ---------
   Inputs:
-    lines   a pointer to lines allocated by readLines.  A NULL value is
+    lines   a pointer to lines allocated by readLines.  A NULL argument is
             acceptable and has no effect.
 */
 void
 freeLines(char **lines)
 {
+    --lines;
     if (lines)
         free(*lines);
     free(lines);
