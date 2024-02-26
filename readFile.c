@@ -23,7 +23,7 @@ extern "C" {
 #endif
 
 char rcsid_readFile[] =
-		"$Id: readFile.c,v 2.77 2024-02-26 16:53:14-05 ron Exp $";
+		"$Id: readFile.c,v 2.78 2024-02-26 17:21:12-05 ron Exp $";
 
 #ifdef _MSC_VER
 	#define fseek _fseeki64
@@ -234,10 +234,10 @@ ARGUMENTS
 void
 freeLines(char **lines)
 {
-    --lines;
-    if (lines)
+    if (lines && *--lines) {
         free(*lines);
-    free(lines);
+        free(lines);
+    }
 }
 
 #ifdef __cplusplus
