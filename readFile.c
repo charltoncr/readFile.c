@@ -23,7 +23,7 @@ extern "C" {
 #endif
 
 char rcsid_readFile[] =
-		"$Id: readFile.c,v 2.79 2024-02-27 06:43:07-05 ron Exp $";
+		"$Id: readFile.c,v 2.80 2024-02-27 07:02:48-05 ron Exp $";
 
 #ifdef _MSC_VER
 	#define fseek _fseeki64
@@ -173,7 +173,7 @@ RETURN VALUE
 readLines returns a pointer to an argv-like array of pointers to the lines or,
 if an error occurs, it sets errno and returns NULL.
 The returned line pointers are followed by a NULL pointer, similar to argv.
-NOTE: An address is hidden before the first entry in lines.  Don't mess with
+NOTE: An address is hidden before the first entry in lines.  Don't change
 it or compensate in any way for it.
 */
 char **
