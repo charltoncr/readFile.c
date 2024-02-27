@@ -23,7 +23,7 @@ extern "C" {
 #endif
 
 char rcsid_readFile[] =
-		"$Id: readFile.c,v 2.78 2024-02-26 17:21:12-05 ron Exp $";
+		"$Id: readFile.c,v 2.79 2024-02-27 06:43:07-05 ron Exp $";
 
 #ifdef _MSC_VER
 	#define fseek _fseeki64
@@ -193,7 +193,7 @@ readLines(const char *fileName, size_t maxSize, size_t *lineCount)
         lnCnt = length && buf[length-1] != '\n'; // line with no '\n' at EOF
         for (p = buf; (p = strchr(p, '\n')); ++p)
             ++lnCnt;
-        linesSize = (lnCnt + 1+1) * sizeof(*lines); // 1+1 NULL, buf pointer
+        linesSize = (lnCnt + 1+1) * sizeof(*lines); // 1+1: NULL & buf pointers
         if (!maxSize || (linesSize+length+1) <= maxSize) {
             if ( (lines = malloc(linesSize)) ) {
                 *lines++ = buf;    // save readFile buffer location
@@ -234,7 +234,8 @@ ARGUMENTS
 void
 freeLines(char **lines)
 {
-    if (lines && *--lines) {
+    if (lines) {
+        --lines;
         free(*lines);
         free(lines);
     }
