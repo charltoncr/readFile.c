@@ -23,7 +23,7 @@ extern "C" {
 #endif
 
 char rcsid_readFile[] =
-		"$Id: readFile.c,v 2.80 2024-02-27 07:02:48-05 ron Exp $";
+		"$Id: readFile.c,v 2.81 2024-03-06 16:59:14-05 ron Exp $";
 
 #ifdef _MSC_VER
 	#define fseek _fseeki64
@@ -182,7 +182,7 @@ readLines(const char *fileName, size_t maxSize, size_t *lineCount)
     char *buf;                  // pointer to text returned by readFile
     size_t length;              // length  of text returned by readFile
     char *p;                    // scratch pointer
-    size_t lnCnt;               // local line count
+    size_t lnCnt = 0;           // local line count
     size_t linesSize;           // space required for line pointers
     char **ln, **lines = NULL;  // argv-like array of lines found in fileName
     
@@ -211,11 +211,11 @@ readLines(const char *fileName, size_t maxSize, size_t *lineCount)
         }
 	}
 
-	if (!buf || !lines || !length) {
+	if (!lines) {
         lnCnt = 0;
-		free(buf);
-		buf = NULL;
-	}
+        free(buf);
+        buf = NULL;
+    }
 
 	if (lineCount)
 		*lineCount = lnCnt;
